@@ -39,7 +39,6 @@ def melt_data(col_name, data, sample_list: list[Any]) -> DataFrame:
 
 
 def plot_data(data, colname):
-    print(data)
     fig = px.bar(data, x = "variable", color = colname, y = "value",
                  barmode="stack",
                  color_discrete_sequence=px.colors.qualitative.Dark24)
@@ -47,6 +46,8 @@ def plot_data(data, colname):
         xaxis_title = "Replicate / Sample",
         yaxis_title = "Relative abundance",
         yaxis_tickformat=".0%",
+        legend_title = colname,
+        title = f"Relative abundance for {colname}"
     )
     return fig
     # ax = sns.histplot(data, x = "variable", hue = colname, weights="value",
