@@ -1,5 +1,6 @@
 from savontanalysis.io import read_species_abundance
 from savontanalysis.viz import relative_abundance
+from savontanalysis.viz import sunburst
 from savontanalysis.io import write_plot
 def register(subparsers):
     p = subparsers.add_parser("basic_overview", help="Basic overview of a classify run")
@@ -12,6 +13,8 @@ def run(args):
     if species_abundance is None:
         return
     fig_rel_ab = relative_abundance.create_abundance_plot(species_abundance, "species", args.top)
-
     write_plot.write(fig_rel_ab, args.output_dir, "abundance_plot.png")
+
+    fig_sunburst = sunburst.create_sunburst_plot(species_abundance)
+    write_plot.write(fig_sunburst, args.output_dir, "sunburst.png")
 
