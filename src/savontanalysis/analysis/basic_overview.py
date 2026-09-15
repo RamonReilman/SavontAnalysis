@@ -16,5 +16,5 @@ def run(args):
     write_plot.write(fig_rel_ab, args.output_dir, "abundance_plot.png")
 
     fig_sunburst = sunburst.create_sunburst_plot(species_abundance)
-    write_plot.write(fig_sunburst, args.output_dir, "sunburst.png")
+    write_plot.write(fig_sunburst, args.output_dir, "sunburst.html")
 
