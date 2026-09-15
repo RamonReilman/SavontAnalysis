@@ -12,9 +12,13 @@ def run(args):
     species_abundance = read_species_abundance.main(args.input_dir)
     if species_abundance is None:
         return
+    col_names = list(species_abundance.columns)
+    final_col = col_names.index("superkingdom")
+    sample_list = col_names[final_col + 1::]
     fig_rel_ab = relative_abundance.create_abundance_plot(species_abundance, "species", args.top)
     write_plot.write(fig_rel_ab, args.output_dir, "abundance_plot.png")
 
-    fig_sunburst = sunburst.create_sunburst_plot(species_abundance)
-    write_plot.write(fig_sunburst, args.output_dir, "sunburst.html")
+    for sample in sample_list:
+        fig_sunburst = sunburst.create_sunburst_plot(species_abundance, sample)
+        write_plot.write(fig_sunburst, args.output_dir, f"{sample}_sunburst.html")
 
