@@ -50,13 +50,4 @@ def plot_data(data, colname):
         title = f"Relative abundance for {colname}"
     )
     return fig
-    # ax = sns.histplot(data, x = "variable", hue = colname, weights="value",
-    #                   multiple="stack", palette="tab20c", shrink=0.8)
-    # ax.set_ylabel("Percentage")
-    # ax.set_xlabel("Samples / replicates")
-    # legend = ax.get_legend()
-    # legend.set_bbox_to_anchor((1,1))
-    # ax.set_title(f"Relative abundance of {colname}")
-    return ax
-
 

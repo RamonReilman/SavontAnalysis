@@ -1,8 +1,6 @@
 import plotly.express as px
 
-def create_sunburst_plot(data, sample):
-    col_names = list(data.columns)
-
+def create_sunburst_plot(data, sample, db):
     path_cols = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
     fig = px.sunburst(
         data,
