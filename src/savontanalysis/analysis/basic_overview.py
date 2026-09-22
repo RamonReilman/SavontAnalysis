@@ -1,6 +1,3 @@
-from email.policy import default
-from random import choices
-
 from savontanalysis.io import read_species_abundance
 from savontanalysis.viz import relative_abundance
 from savontanalysis.viz import sunburst
