@@ -1,6 +1,7 @@
 import argparse
-
-from savontanalysis.analysis import basic_overview, profile2CAMI
+import platform
+from savontanalysis.analysis import basic_overview
+from savontanalysis.taxonomy import profile2CAMI
 
 
 def setup_cli():
@@ -14,6 +15,9 @@ def setup_cli():
 
 def main(argv = None):
     args = setup_cli()
+    if platform.system() == "Windows":
+        print("Tool not compatible with Windows")
+        return
     dispatch = {"basic_overview": basic_overview.run,
                 "profile2CAMI": profile2CAMI.run}
     dispatch[args.type](args)
