@@ -1,5 +1,6 @@
+from pandas import DataFrame
 
-from savontanalysis.io import read_species_abundance, write_profile
+from savontanalysis.io import read_species_abundance, write_profile, read_abundance_table
 import re
 from savontanalysis.taxonomy.database import TaxonomyDB
 
@@ -13,24 +14,50 @@ def register(subparser):
 
 
 def run(args):
-    species_abundance = read_species_abundance.main(args.input_dir)
-    if species_abundance is None:
-        return
     db = TaxonomyDB("~/.local/share/tax.db")
+    if args.tool == "savont":
+        species_abundance = read_species_abundance.main(args.input_dir)
+        if species_abundance is None:
+            return
+        build_output_savont(args, db, species_abundance)
+    else:
+        species_abundance = read_abundance_table.main(args.input_dir)
+        if species_abundance is None:
+            return
+        build_output_wf16s(args, db, species_abundance)
+
+
+def build_output_wf16s(args, db, species_abundance):
+    ranks = ["superkingdom", "clade", "phylum", "class", "order", "family", "genus", "species"]
+    n_ranks = len(species_abundance["tax"].str.split(";")[0])
+    ranks = ranks[0:n_ranks]
+
+    species_abundance[ranks] = species_abundance["tax"].str.split(";", expand=True)
+    species_abundance.drop(["tax", "clade", "total"], inplace=True, axis=1)
+    counts = species_abundance.iloc[:, 0]
+    species_abundance["percentage"] = counts / counts.sum() * 100
+    species_abundance.drop(index = 0, inplace=True, axis = 1)
+    header = build_header(args.sampleID, ranks)
+    ranks.pop(ranks.index("clade"))
+    ranks.reverse()
+    body = build_body(ranks, species_abundance, "percentage", db)
+    write_profile.write(header + body, args.output_dir, f"wf-16s.profile")
+
+
+def build_output_savont(args, db: TaxonomyDB, species_abundance: DataFrame):
     species_abundance.drop(['clade'], inplace=True, axis=1)
 
     col_names = list(species_abundance.columns)
     final_col = col_names.index("superkingdom")
     sample_list = col_names[final_col + 1::]
     for i in range(0, len(sample_list)):
-        header = build_header(args.sampleID)
-        body = build_body(col_names[0:final_col+1], species_abundance, sample_list[i], db)
-        write_profile.write(header+body, args.output_dir, f"{sample_list[i]}.profile")
-
+        header = build_header(args.sampleID, reversed(col_names[0:final_col+1]))
+        body = build_body(col_names[0:final_col + 1], species_abundance, sample_list[i], db)
+        write_profile.write(header + body, args.output_dir, f"{sample_list[i]}.profile")
 
 
 def build_body(colnames, data, percentage_col, db):
-    EMITS = ["Greengenes_unannotated", "UNCLASSIFIED"]
+    EMITS = ["Greengenes_unannotated", "UNCLASSIFIED", "Unknown", "Unclassified"]
     body = ""
     ranks = list(reversed(colnames))
     for rank_i, rank in enumerate(ranks):
@@ -76,12 +103,12 @@ def build_body(colnames, data, percentage_col, db):
     return body
 
 
-def build_header(sampleID):
+def build_header(sampleID, ranks):
     header = f"""# Taxonomic profiling output
 @SampleID:{sampleID}
 @Version:0.9.3
 @TaxonomyID:greengenes2-2024.09
-@Ranks:superkingdom|phylum|class|order|family|genus|species
+@Ranks:{"|".join(ranks)}
 @@TAXID	RANK	TAXPATH	TAXPATHSN	PERCENTAGE
 """
     return header
