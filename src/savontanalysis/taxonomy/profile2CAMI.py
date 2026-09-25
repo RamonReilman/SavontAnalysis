@@ -1,6 +1,7 @@
+import pandas as pd
 from pandas import DataFrame
-
-from savontanalysis.io import read_species_abundance, write_profile, read_abundance_table
+import glob
+from savontanalysis.io import read_species_abundance, write_profile, read_abundance_table, read_nanosim_ab
 import re
 from savontanalysis.taxonomy.database import TaxonomyDB
 
@@ -8,7 +9,7 @@ def register(subparser):
     p = subparser.add_parser("profile2CAMI", help="Generates a names2taxid file using taxonkit")
     p.add_argument("--input_dir", required=True)
     p.add_argument("--output_dir", default="./")
-    p.add_argument("--tool", help = "tool used to generate file", required = True, choices = ["savont", "wf-16s"])
+    p.add_argument("--tool", help = "tool used to generate file", required = True, choices = ["savont", "wf-16s", "nanosim"])
     p.add_argument("--sampleID", help = "Name the sampleID in the header", required = True)
 
 
@@ -17,14 +18,45 @@ def run(args):
     db = TaxonomyDB("~/.local/share/tax.db")
     if args.tool == "savont":
         species_abundance = read_species_abundance.main(args.input_dir)
+        print(species_abundance)
         if species_abundance is None:
             return
         build_output_savont(args, db, species_abundance)
-    else:
+    elif args.tool == "wf-16s":
         species_abundance = read_abundance_table.main(args.input_dir)
         if species_abundance is None:
             return
         build_output_wf16s(args, db, species_abundance)
+    else:
+        new_df = {"percentage": [],}
+        abundance = read_nanosim_ab.main(args.input_dir)
+        for row in abundance.itertuples(index = False):
+            tax_id = row[0]
+            abundance = row[1]
+            new_df["percentage"].append(abundance / 100)
+            taxon = db.fetch_with_id(tax_id)
+            parent_id = taxon[1]
+
+            while parent_id is not None:
+                if taxon[3] not in new_df:
+                    new_df[taxon[3]] = []
+
+                new_df[taxon[3]].append(taxon[2])
+
+                taxon = db.fetch_with_id(parent_id)
+                parent_id = taxon[1]
+            if taxon[3] not in new_df:
+                new_df[taxon[3]] = []
+            new_df[taxon[3]].append(taxon[2])
+
+        ground_truth_abundances = pd.DataFrame(new_df)
+        colnames = ground_truth_abundances.columns.to_list()
+        body = build_body(colnames[1:], ground_truth_abundances, "percentage", db)
+        header = build_header(args.sampleID, reversed(colnames[1:]))
+        write_profile.write(header + body, args.output_dir, f"ground_truth.profile")
+
+
+
 
 
 def build_output_wf16s(args, db, species_abundance):
@@ -45,11 +77,20 @@ def build_output_wf16s(args, db, species_abundance):
 
 
 def build_output_savont(args, db: TaxonomyDB, species_abundance: DataFrame):
-    species_abundance.drop(['clade'], inplace=True, axis=1)
+    print(species_abundance)
+    if "clade" in species_abundance.columns:
+        species_abundance.drop(['clade'], inplace=True, axis=1)
 
     col_names = list(species_abundance.columns)
     final_col = col_names.index("superkingdom")
-    sample_list = col_names[final_col + 1::]
+    if "abundance" in col_names:
+        sample_list = ["abundance"]
+        _ = col_names.pop(0)
+    else:
+
+        print(col_names)
+        sample_list = col_names[final_col + 1::]
+
     for i in range(0, len(sample_list)):
         header = build_header(args.sampleID, reversed(col_names[0:final_col+1]))
         body = build_body(col_names[0:final_col + 1], species_abundance, sample_list[i], db)
@@ -76,6 +117,7 @@ def build_body(colnames, data, percentage_col, db):
                 parent, name = group
                 mask = (data[rank] == name) & (data[parent_rank] == parent)
             percentage = round(data[mask][percentage_col].sum() * 100, 5)
+
             if name in EMITS:
                 continue
             id = db.get_taxID(name, rank)

@@ -1,8 +1,15 @@
+
+
 from savontanalysis.io import read_species_abundance
 from savontanalysis.viz import relative_abundance
 from savontanalysis.viz import sunburst
 from savontanalysis.io import write_plot
 def register(subparsers):
+    """
+    Registers a new subparser for basic overview arguments
+    :param subparsers: Subparser from cli.py
+    :return: -
+    """
     p = subparsers.add_parser("basic_overview", help="Basic overview of a classify run")
     p.add_argument("--input_dir", required=True)
     p.add_argument("--output_dir", default="./")
@@ -15,19 +22,29 @@ def register(subparsers):
 
 
 def run(args):
+    """
+    Runs the entire basic overview script
+    Generates multiple plots:
+    - Abundance
+    - Sunburst
+    :param args: Arguments from the command line
+    :return: Writes file at the arg.output_dir
+    """
     species_abundance = read_species_abundance.main(args.input_dir)
     if species_abundance is None:
         return
+
     col_names = list(species_abundance.columns)
     final_col = col_names.index("superkingdom")
     sample_list = col_names[final_col + 1::]
+
     if args.db == "silva":
         cols = species_abundance["species"].str.split(" ", n = 1, expand = True)
         species_abundance['genus'] = cols[0]
+
     fig_rel_ab = relative_abundance.create_abundance_plot(species_abundance, args.taxonomic_rank, args.top)
     write_plot.write(fig_rel_ab, args.output_dir, "abundance_plot.png")
 
     for sample in sample_list:
         fig_sunburst = sunburst.create_sunburst_plot(species_abundance, sample, args.db)
         write_plot.write(fig_sunburst, args.output_dir, f"{sample}_sunburst.html")
-
