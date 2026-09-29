@@ -1,5 +1,5 @@
 import pandas as pd
-
+import glob
 def main(input_dir):
     """
     Reads the abundance table of wf-16s workflow output
@@ -7,7 +7,8 @@ def main(input_dir):
     :return: Pandas dataframe containing the abundance table data.
     """
     try:
-        data = pd.read_csv(f"{input_dir}/abundance_table_genus.tsv", delimiter = "\t")
+        file = glob.glob(f"{input_dir}/*abundance_table_*.tsv")
+        data = pd.read_csv(file[0], delimiter = "\t")
     except FileNotFoundError as e:
         print("abundance file not found, did you give the right input directory?")
         return None

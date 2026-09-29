@@ -65,10 +65,10 @@ def build_output_wf16s(args, db, species_abundance):
     ranks = ranks[0:n_ranks]
 
     species_abundance[ranks] = species_abundance["tax"].str.split(";", expand=True)
+    counts = species_abundance.iloc[:, 1]
+    species_abundance["percentage"] = counts / counts.sum()
     species_abundance.drop(["tax", "clade", "total"], inplace=True, axis=1)
-    counts = species_abundance.iloc[:, 0]
-    species_abundance["percentage"] = counts / counts.sum() * 100
-    species_abundance.drop(index = 0, inplace=True, axis = 1)
+    print(species_abundance)
     header = build_header(args.sampleID, ranks)
     ranks.pop(ranks.index("clade"))
     ranks.reverse()

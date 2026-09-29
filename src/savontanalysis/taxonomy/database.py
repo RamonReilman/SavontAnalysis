@@ -41,12 +41,22 @@ class TaxonomyDB:
         :return: The taxID of the new entry
         """
         with sqlite3.connect(self.db_path) as conn:
+            id = self.get_taxID(name, rank)
+            if id:
+                return id
             sql = """ INSERT INTO taxa (taxid,parent_taxid,name,rank)
                       VALUES(NULL,?,?,?) """
             cur = conn.cursor()
             cur.execute(sql, (parent_taxid, name, rank))
             conn.commit()
         return self.get_taxID(name, rank)
+
+    def get_all(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT taxid, parent_taxid, name, rank FROM taxa")
+            row = cur.fetchall()
+            return row
 
     def get_taxID(self, name, rank):
         """
