@@ -27,7 +27,8 @@ class TaxonomyDB:
                     taxid INTEGER PRIMARY KEY,
                     parent_taxid INTEGER,
                     name TEXT NOT NULL,
-                    rank TEXT
+                    rank TEXT,
+                    UNIQUE(name, rank)
                 )
             """)
 

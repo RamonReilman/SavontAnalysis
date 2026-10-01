@@ -21,6 +21,7 @@ def run(args):
     rows = []
     ref2tax = {}
     db = TaxonomyDB("~/.local/share/tax.db")
+    db.add_taxon(1, "root", "no rank")
     rows_db = db.get_all()
     for taxid, parent_id, name, rank in rows_db:
         key = (name, rank)
@@ -49,9 +50,11 @@ def run(args):
                 parentID = None
                 for field in fields:
                     rank = taxmap[field[0:3]]
-                    name = field[3:]
+                    name = field[3:].strip()
                     if rank == "species":
-                        name = f"{fields[-2][3:]} {field[3:]}"
+                        name = f"{fields[-2][3:].strip()} {field[3:].strip()}".strip()
+                    if not name:
+                        break
 
                     parentID = get_or_create(parentID, name, rank)
                 ref2tax[f"gg{seq_id}"] = parentID if parentID is not None else 0
@@ -72,15 +75,15 @@ def run(args):
     rows = db.get_all()
     with open("names.dmp", "w") as names, \
     open("nodes.dmp", "w") as nodes:
-        for row in rows:
+        names.write("1\t|\troot\t|\t\t|\tscientific name\t|\n")
+        nodes.write("1\t|\t1\t|\tno rank\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
+        for row in rows[1:]:
             id = row[0]
             parent_id = row[1]
             name = row[2]
             rank = row[3]
+            if parent_id is None:
+                parent_id = taxid
 
             names.write(f"{id}\t|\t{name}\t|\t\t|\tscientific name\t|\n")
             nodes.write(f"{id}\t|\t{parent_id}\t|\t{rank or 'no rank'}\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
-
-
-
-
