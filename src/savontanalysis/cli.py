@@ -3,6 +3,7 @@ import platform
 from savontanalysis.analysis import basic_overview
 from savontanalysis.taxonomy import profile2CAMI
 from savontanalysis.custom_db_gen import db_gen
+from savontanalysis.db_merging import db_merge
 
 
 def setup_cli():
@@ -13,6 +14,8 @@ def setup_cli():
     basic_overview.register(subparsers)
     profile2CAMI.register(subparsers)
     db_gen.register(subparsers)
+    db_merge.register(subparsers)
+
     return parser.parse_args()
 
 def main(argv = None):
@@ -22,5 +25,6 @@ def main(argv = None):
         return
     dispatch = {"basic_overview": basic_overview.run,
                 "profile2CAMI": profile2CAMI.run,
-                "customdb": db_gen.run}
+                "customdb": db_gen.run,
+                "mergeDB": db_merge.run}
     dispatch[args.type](args)

@@ -8,6 +8,13 @@ def register(subparser):
 
 
 def run(args):
+    """
+    Generates the following files needed for wf-16s:
+    ref2taxid.tsv: headerID of ref db with custom taxIDS
+    nodes.dmp: Information about
+    :param args:
+    :return:
+    """
     cache = {}
     taxmap = {
         "d__": "superkingdom",
@@ -26,6 +33,7 @@ def run(args):
     for taxid, parent_id, name, rank in rows_db:
         key = (name, rank)
         cache[key] = taxid
+
     def get_or_create(parent_id, name, rank):
 
         key = (name, rank)
