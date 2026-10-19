@@ -17,9 +17,7 @@ def run(args):
     if fasta is None:
         return None
 
-    for line in fasta.split("\n"):
-        if line.startswith(">"):
-            pass
+    for line in fasta:
         print(line)
         break
 

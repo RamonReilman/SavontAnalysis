@@ -56,9 +56,6 @@ def run(args):
         write_profile.write(header + body, args.output_dir, f"ground_truth.profile")
 
 
-
-
-
 def build_output_wf16s(args, db, species_abundance):
     ranks = ["superkingdom", "clade", "phylum", "class", "order", "family", "genus", "species"]
     n_ranks = len(species_abundance["tax"].str.split(";")[0])
