@@ -1,5 +1,6 @@
 from typing import Any, Callable
 import pandas as pd
+from pandas import DataFrame
 
 from savontanalysis.io import read_fasta, read_taxmap, read_pr2_merged
 def register(subparser):
@@ -16,11 +17,14 @@ def run(args):
     except Exception as e:
         print(e)
         return None
+
     fasta_base = read_fasta.main(args.base_db)
     if fasta_base is None:
         return None
+
     taxmap = read_taxmap.main(args.tax_map)
     PR2_information = read_pr2_merged.main(args.new_db_merged)
+
     headers, sequences = separate_headers_sequences(fasta_base)
     if len(headers) == 0 or len(sequences) == 0:
         return None
@@ -37,10 +41,14 @@ def run(args):
 
     new_taxmap, sequences, headers = merge_fasta(converter, fasta_new, headers, sequences, PR2_information)
     taxmap = pd.concat([taxmap, new_taxmap])
-    taxmap.to_csv("taxmap.txt", sep="\t", index=False)
+
+    write_merged_db(args, headers, sequences, taxmap)
 
 
-    with open("test.txt", "w") as f:
+def write_merged_db(args, headers: list[Any], sequences: list[Any], taxmap: DataFrame):
+    taxmap.to_csv(f"{args.output_dir}taxmap.txt", sep="\t", index=False)
+
+    with open(f"{args.output_dir}/merged_db.fasta", "w") as f:
         for i in range(0, len(headers)):
             f.write(f"{headers[i]}\n")
             f.write(f"{sequences[i]}\n")
@@ -81,13 +89,7 @@ def merge_fasta(converter: Callable[..., Any] | Callable[..., Any] | Callable[..
             accession = line[0][1:].replace(" ", "_")
             if accession not in info_lookup.index:
                 continue
-            row = info_lookup.loc[accession]
-            tax_map_info["tax_id"] = row["taxo_id"].item()
-            tax_map_info["start"] = row["start"].item()
-            tax_map_info["end"] = row["end"].item()
-            tax_map_info["taxonomy_path"] = ";".join(filtered_header[1:-1:]) + ";"
-            tax_map_info["species"] = filtered_header[-1]
-            tax_map_info["accession"] = accession.split(".")[0]
+            get_taxmap_info(accession, filtered_header, info_lookup, tax_map_info)
 
         else:
             sequence = line.strip()
@@ -102,6 +104,16 @@ def merge_fasta(converter: Callable[..., Any] | Callable[..., Any] | Callable[..
                 x+=1
     print(f"{x} duplicates found and not merged")
     return pd.DataFrame(tax_map, columns = ["primaryAccession", "start", "stop", "path", "organism_name", "taxid"]), sequences, headers
+
+
+def get_taxmap_info(accession: str, filtered_header: list[str], info_lookup, tax_map_info: dict[Any, Any]):
+    row = info_lookup.loc[accession]
+    tax_map_info["tax_id"] = row["taxo_id"].item()
+    tax_map_info["start"] = row["start"].item()
+    tax_map_info["end"] = row["end"].item()
+    tax_map_info["taxonomy_path"] = ";".join(filtered_header[1:-1:]) + ";"
+    tax_map_info["species"] = filtered_header[-1]
+    tax_map_info["accession"] = accession.split(".")[0]
 
 
 def dna_to_rna(sequence):
