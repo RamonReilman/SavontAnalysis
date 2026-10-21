@@ -167,4 +167,3 @@ def check_supported_dbs(args):
         raise Exception(f"Databases used in this run are not supported: {supported_db}")
     return True
 
-
