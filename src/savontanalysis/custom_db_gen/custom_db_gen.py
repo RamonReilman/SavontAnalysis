@@ -36,16 +36,6 @@ def run(args):
         }
         db = TaxonomyDB("~/.local/share/tax.db")
     elif args.db_type == "silva":
-        taxmap = {
-            0: "domain",
-            1: "clade 1",
-            2: "clade 2",
-            3: "phylum",
-            4: "class",
-            5: "order",
-            6: "genus",
-            7: "species"
-        }
         db = TaxonomyDB("~/.local/share/silva_tax.db")
 
     rows = []
@@ -103,7 +93,7 @@ def run(args):
             name = row[2]
             rank = row[3]
             if parent_id is None:
-                parent_id = taxid
+                parent_id = 1
 
             names.write(f"{id}\t|\t{name}\t|\t\t|\tscientific name\t|\n")
             nodes.write(f"{id}\t|\t{parent_id}\t|\t{rank or 'no rank'}\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
@@ -135,7 +125,18 @@ def silva_processing(get_or_create: Callable[..., Any | None], line: str) -> Any
 
     accession, lineage = line[1:].strip().split(" ", 1)
     fields = lineage.split(";")
-    taxmap = {0: "domain",
+    if len(fields) == 7:
+        taxmap = {
+            0: "domain",
+            1: "phylum",
+            2: "class",
+            3: "order",
+            4: "family",
+            5: "genus",
+            6: "species",
+        }
+    else:
+        taxmap = {0: "domain",
               len(fields)-1: "species",
               len(fields)-2: "genus"}
     lowest_rank = taxmap[len(fields)-1]
