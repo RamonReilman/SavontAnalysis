@@ -8,16 +8,13 @@ from pandas.io.parsers import TextFileReader
 from savontanalysis.io import read_tab_pandas
 
 def main(asv_mapping, final_assignments):
-    asv_mapping = asv_mapping.copy()
-    final_assignments = final_assignments.copy()
     create_lineage(asv_mapping)
     asv_to_lineage = asv_mapping.groupby("lineage")["asv_header"].unique()
 
     extract_barcodes(final_assignments)
     barcodes = final_assignments["barcode"].unique()
-    lineages = list(asv_to_lineage.index)[1:]
+    lineages = list(asv_to_lineage.index)
     barcodes_n_counts = get_barcode_counts(barcodes, final_assignments)
-    print(barcodes_n_counts)
 
     lineage_abundance = calculate_abundancies(asv_to_lineage, barcodes_n_counts, final_assignments, lineages)
 
@@ -34,7 +31,6 @@ def calculate_abundancies(asv_to_lineage: Series, barcodes_n_counts: dict[Any, A
                 lineage_abundance[barcode] = {}
             asvs_filtered_count = len(final_assignments[(final_assignments.asv.isin(asvs)) &
                                                         (final_assignments["barcode"] == barcode)])
-            print(asvs_filtered_count)
             if barcodes_n_counts[barcode] > 0:
                 lineage_abundance[barcode][lineage] = asvs_filtered_count / barcodes_n_counts[barcode]
                 continue
