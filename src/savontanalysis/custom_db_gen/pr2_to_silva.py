@@ -31,12 +31,15 @@ def process_fasta(fasta, information):
     tax_map = []
     fasta_data = []
     invalid_indices = [1,2,3, 5, 6]
+
+    # Not used but to highlight the keys
     tax_map_info = {"accession": "",
                     "tax_id": "",
                     "start": 0,
                     "end": 0,
                     "taxonomy_path": "",
                     "species": ""}
+
     info_lookup = information.set_index("pr2_accession")
     for line in fasta:
         if line.startswith(">"):
