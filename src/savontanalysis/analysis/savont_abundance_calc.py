@@ -7,14 +7,9 @@ from pandas.io.parsers import TextFileReader
 
 from savontanalysis.io import read_tab_pandas
 
-def main(args):
-    print("DEBUGGING< LIST SAVONT_ABUNDANCE_CALC LIST == INDEXED BY 0")
-    classify_dir = args.classify_directories[0]
-    asv_mapping = read_tab_pandas.main(f"{classify_dir}/asv_mappings.tsv")
-    final_assignments = read_tab_pandas.main(f"{args.asv_directory}/final_assignments.tsv")
-    if asv_mapping is None or final_assignments is None:
-        return None
-
+def main(asv_mapping, final_assignments):
+    asv_mapping = asv_mapping.copy()
+    final_assignments = final_assignments.copy()
     create_lineage(asv_mapping)
     asv_to_lineage = asv_mapping.groupby("lineage")["asv_header"].unique()
 
