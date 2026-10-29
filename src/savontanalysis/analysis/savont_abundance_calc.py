@@ -1,57 +1,60 @@
+from collections import defaultdict
 from typing import Any
 
 from numpy import dtype, ndarray
 from pandas import DataFrame, Series
 from pandas.core.arrays import ExtensionArray
 from pandas.io.parsers import TextFileReader
+from savontanalysis.result_merging.tie_breaking_system import resolve_all_lineages
 
 from savontanalysis.io import read_tab_pandas
 
-def main(asv_mapping, final_assignments):
-    create_lineage(asv_mapping)
-    asv_to_lineage = asv_mapping.groupby("lineage")["asv_header"].unique()
+def main(clean_lineages, final_assignments, feature_table):
 
     extract_barcodes(final_assignments)
     barcodes = final_assignments["barcode"].unique()
-    lineages = list(asv_to_lineage.index)
-    barcodes_n_counts = get_barcode_counts(barcodes, final_assignments)
+    barcodes_n_counts = get_barcode_counts(feature_table)
 
-    lineage_abundance = calculate_abundancies(asv_to_lineage, barcodes_n_counts, final_assignments, lineages)
+    lineage_abundance = calculate_abundancies(clean_lineages, barcodes_n_counts, final_assignments)
 
     return lineage_abundance
 
 
-def calculate_abundancies(asv_to_lineage: Series, barcodes_n_counts: dict[Any, Any],
-                          final_assignments: DataFrame | TextFileReader, lineages: list[Any]) -> dict[Any, Any]:
+def calculate_abundancies(resolved_lineages, barcodes_n_counts,
+                          final_assignments):
+
+    lineage_to_asv = defaultdict(list)
+    for asv, lineage in resolved_lineages.items():
+        lineage_to_asv[lineage].append(asv)
     lineage_abundance = {}
-    for i, lineage in enumerate(lineages):
-        asvs = asv_to_lineage.iloc[i]
-        for barcode in barcodes_n_counts.keys():
-            if barcode not in lineage_abundance:
-                lineage_abundance[barcode] = {}
-            asvs_filtered_count = len(final_assignments[(final_assignments.asv.isin(asvs)) &
-                                                        (final_assignments["barcode"] == barcode)])
+    for barcode in barcodes_n_counts.keys():
+        lineage_abundance[barcode] = {}
+        for lineage, asvs in lineage_to_asv.items():
+            print(lineage)
+            print(asvs)
+            count = get_count(asvs)
+
             if barcodes_n_counts[barcode] > 0:
-                lineage_abundance[barcode][lineage] = asvs_filtered_count / barcodes_n_counts[barcode]
+                lineage_abundance[barcode][lineage] = count / (barcodes_n_counts[barcode])
                 continue
             lineage_abundance[barcode][lineage] = 0
     return lineage_abundance
 
 
-def get_barcode_counts(barcodes, final_assignments):
-    barcodes_n_counts = {}
-    for barcode in barcodes:
-        pass
-        n_total = len(final_assignments[(final_assignments["asv"] != "unassigned") &
-                                        (final_assignments["barcode"] == barcode)])
-        barcodes_n_counts[barcode] = n_total
-    return barcodes_n_counts
+def get_barcode_counts(feature_table):
+
+    dict_barcodes = feature_table.drop(columns=["#OTU ID"]).sum().to_dict()
+    return {k.replace("_", ""): v for k, v in dict_barcodes.items()}
 
 
-def create_lineage(df):
-    cols = ["species", "genus", "family", "order", "class", "phylum",
-       "clade", "superkingdom"]
-    df["lineage"] = df[cols].apply(lambda row: ";".join(row.values.astype(str)), axis = 1)
+
+def get_count(asvs):
+    total = 0
+    for depth in asvs:
+        depth_int = int(depth.split("-")[-1])
+        total += depth_int
+    return total
+
 
 def extract_barcodes(df):
     df["barcode"] = df.iloc[:, 0].str.extract(r"\bbarcode=(\S+)")
