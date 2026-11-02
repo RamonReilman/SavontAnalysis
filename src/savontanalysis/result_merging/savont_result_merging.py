@@ -9,8 +9,13 @@ def register(subparsers):
 
 def run(args):
     print("DEBUGGING< LIST SAVONT_ABUNDANCE_CALC LIST == INDEXED BY 0")
-    classify_dir = args.classify_directories[0]
-    asv_mapping = read_tab_pandas.main(f"{classify_dir}/asv_mappings.tsv")
+    asv_mappings = []
+    if len(args.classify_directories) > 0:
+        for classify_dir in args.classify_directories:
+            asv_mappings.append(read_tab_pandas.main(f"{classify_dir}/asv_mappings.tsv"))
+
+    asv_mapping = pd.concat(asv_mappings)
+
     feature_table = read_tab_pandas.main(f"{args.asv_directory}/feature-table.tsv")
     asv_mapping = asv_mapping.fillna(" ")
     create_lineage(asv_mapping)

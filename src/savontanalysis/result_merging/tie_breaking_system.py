@@ -2,9 +2,13 @@ from collections import defaultdict
 import pandas as pd
 def main(asv_mapping):
     print("_---------_----__--")
-    asv_to_lineage = asv_mapping.groupby("asv_header", sort=False)["lineage"].agg(list)
+    asv_to_lineage = asv_mapping.groupby("asv_header", sort=False)[["lineage", "alignment_identity"]].agg(list)
+    filtered = asv_to_lineage.apply(
+        lambda row: filter_max_pair(row["lineage"], row["alignment_identity"]), axis = 1)
+    asv_to_lineage['lineage'] = [f[0] for f in filtered]
+    asv_to_lineage['alignment_identity'] = [f[1] for f in filtered]
 
-    resolved_lineages = resolve_all_lineages(asv_to_lineage)
+    resolved_lineages = resolve_all_lineages(asv_to_lineage["lineage"])
 
     return resolved_lineages
 
@@ -14,6 +18,7 @@ def resolve_all_lineages(asv_to_lineage):
 
     resolved_lineages = {}
     for asv, lineages in asv_to_lineage.items():
+        print()
 
         if len(lineages) == 1:
             resolved_lineages[asv] = lineages[0]
@@ -30,7 +35,11 @@ def resolve_all_lineages(asv_to_lineage):
         resolved_lineages[asv] = winner if winner else lineages[-1]
     return resolved_lineages
 
+def filter_max_pair(lineage, alignment_identity):
+    m = max(alignment_identity)
+    kept = [(lin, identity) for lin, identity in zip(lineage, alignment_identity) if identity == m]
 
+    return [l for l, _ in kept], [i for _, i in kept]
 
 
 def create_lineage_to_asv(asv_to_lineage):
