@@ -1,6 +1,6 @@
 import argparse
 import platform
-from savontanalysis.analysis import basic_overview
+from savontanalysis.analysis import basic_overview, assignment_overview
 from savontanalysis.taxonomy import profile2CAMI
 from savontanalysis.custom_db_gen import custom_db_gen, pr2_to_silva
 from savontanalysis.db_merging import db_merge
@@ -18,6 +18,7 @@ def setup_cli():
     db_merge.register(subparsers)
     pr2_to_silva.register(subparsers)
     savont_result_merging.register(subparsers)
+    assignment_overview.register(subparsers)
 
     return parser.parse_args()
 
@@ -31,5 +32,6 @@ def main(argv = None):
                 "customdb": custom_db_gen.run,
                 "mergeDB": db_merge.run,
                 "PR2Transform": pr2_to_silva.run,
-                "savont_result_merger": savont_result_merging.run}
+                "savont_result_merger": savont_result_merging.run,
+                "assignment_overview": assignment_overview.run}
     dispatch[args.type](args)
