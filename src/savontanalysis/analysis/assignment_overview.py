@@ -36,7 +36,6 @@ def run(args):
         return
     if dir_check.main(args.output) is False:
         return
-
     species_abundance = species_abundance.dropna(axis=1, how="all")
     final_rank_col = list(species_abundance.columns).index("superkingdom")+1
     taxo_ranks = species_abundance.iloc[:, : final_rank_col]
@@ -49,7 +48,7 @@ def run(args):
         "informative %": informative_percentage.values,
         "environmental %": env_percentage.values
     })
-    results.to_csv(args.output, sep="\t", header=True)
+    results.to_csv(args.output, sep="\t", header=True, index=False)
 
 
 def calculate_assignment_perc(col):

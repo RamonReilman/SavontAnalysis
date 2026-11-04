@@ -17,7 +17,7 @@ def run(args):
     asv_mapping = pd.concat(asv_mappings)
 
     feature_table = read_tab_pandas.main(f"{args.asv_directory}/feature-table.tsv")
-    asv_mapping = asv_mapping.fillna(" ")
+    asv_mapping = asv_mapping.fillna("")
     create_lineage(asv_mapping)
     final_assignments = read_tab_pandas.main(f"{args.asv_directory}/final_assignments.tsv")
 
@@ -37,7 +37,7 @@ def run(args):
     print(resolved_lineages)
     df = df.sort_values(by=df.columns[-1], ascending=False)
     print(df)
-    df.to_csv("./testoutput.tsv", sep="\t")
+    df.to_csv("./testoutput.tsv", sep="\t", index=False)
 
 def create_lineage(df):
     cols = ["species", "genus", "family", "order", "class", "phylum",

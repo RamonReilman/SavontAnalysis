@@ -2,7 +2,7 @@ from typing import Any, Callable
 import pandas as pd
 from pandas import DataFrame
 
-from savontanalysis.io import read_fasta, read_taxmap, read_pr2_merged
+from savontanalysis.io import read_fasta, read_taxmap, read_pr2_merged, dir_check
 def register(subparser):
     p = subparser.add_parser("mergeDB", help="Merge 2 reference databases into one")
     p.add_argument("--base_db", required=True, help = "Silva fast file")
@@ -17,7 +17,8 @@ def run(args):
     except Exception as e:
         print(e)
         return None
-
+    if dir_check.main(args.output_dir) is False:
+        return None
     fasta_base = read_fasta.main(args.base_db)
     if fasta_base is None:
         return None
@@ -68,7 +69,7 @@ def get_nucleic_converted(nucleic_type_base: str | None, nucleic_type_second: st
 
 def merge_fasta(converter: Callable[..., Any] | Callable[..., Any] | Callable[..., Any], fasta_new: list[str],
                 headers: list[Any], sequences: list[Any], new_db_info):
-    valid_indices = [0, 4, 6, 7, 8, 9, 10, 11, 12]
+    valid_indices = [0, 4, 6, 7, 8, 9, 11, 12]
     tax_map = []
     x = 0
     header = ""

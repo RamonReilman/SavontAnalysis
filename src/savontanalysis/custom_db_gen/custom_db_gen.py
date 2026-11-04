@@ -1,23 +1,29 @@
+# TODO split things up into smaller functions
+# TODO put the writing of files into IO functions
 from typing import Any, Callable
-
 from savontanalysis.taxonomy.database import TaxonomyDB
 from savontanalysis.io import dir_check
 
+
 def register(subparser):
-    p = subparser.add_parser("customdb", help="Generates a custom db for wf-16s")
-    p.add_argument("--db_type", help="Specify the type of db input", choices=["silva", "greengenes2"], required=True)
+    p = subparser.add_parser("customdb",
+                             help="Generates a custom db for wf-16s")
+    p.add_argument("--db_type",
+                   help="Specify the type of db input",
+                   choices=["silva", "greengenes2"],
+                   required=True)
     p.add_argument("--input_fasta", required=True)
     p.add_argument("--output_dir", default="./")
-
 
 
 def run(args):
     """
     Generates the following files needed for wf-16s:
     ref2taxid.tsv: headerID of ref db with custom taxIDS
-    nodes.dmp: Information about
-    :param args:
-    :return:
+    nodes.dmp: Information about the taxids
+    names.dmp Links the name of a taxon with a taxid
+    :param args: CLI arguments
+    :return: -
     """
     cache = {}
 
