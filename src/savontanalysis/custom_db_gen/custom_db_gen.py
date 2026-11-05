@@ -2,7 +2,7 @@
 # TODO put the writing of files into IO functions
 from typing import Any, Callable
 from savontanalysis.taxonomy.database import TaxonomyDB
-from savontanalysis.io import dir_check
+from savontanalysis.io import dir_check, read_tab_pandas
 
 
 def register(subparser):
@@ -13,6 +13,7 @@ def register(subparser):
                    choices=["silva", "greengenes2"],
                    required=True)
     p.add_argument("--input_fasta", required=True)
+    p.add_argument("--tax_file", help="tax_slv_lsu file belonging to Silva, used to get better rank assignment")
     p.add_argument("--output_dir", default="./")
 
 
@@ -29,6 +30,12 @@ def run(args):
 
     if dir_check.main(args.output_dir) is False:
         return None
+    tax_file = None
+    if args.tax_file is not None:
+        tax_file = read_tab_pandas.main(args.tax_file, header=None).dropna(axis = 1, how = "all")
+        print(tax_file)
+        tax_file.columns = ["lineage", "taxid", "rank", "version"]
+
 
     if args.db_type == "greengenes2":
         taxmap = {
@@ -50,12 +57,12 @@ def run(args):
     db.add_taxon(1, "root", "no rank")
     rows_db = db.get_all()
     for taxid, parent_id, name, rank in rows_db:
-        key = (name, rank)
+        key = (name, rank, parent_id)
         cache[key] = taxid
 
     def get_or_create(parent_id, name, rank):
 
-        key = (name, rank)
+        key = (name, rank, parent_id)
         if key in cache:
             return cache[key]
         taxid = db.add_taxon(parent_id, name, rank)
@@ -72,7 +79,7 @@ def run(args):
                     ref2tax[f"gg{seq_id}"] = parentID if parentID is not None else 0
                     line = f">gg{seq_id} {line[1:]}"
                 elif args.db_type == "silva":
-                    parentID, accession = silva_processing(get_or_create, line)
+                    parentID, accession = silva_processing(get_or_create, line, tax_file)
                     ref2tax[accession] = parentID if parentID is not None else 0
 
                 seq_id += 1
@@ -89,6 +96,7 @@ def run(args):
 
 
     rows = db.get_all()
+    valid_ranks = ["domain", "phylum", "class", "order", "family", "genus", "species"]
     with open(f"{args.output_dir}/names.dmp", "w") as names, \
     open(f"{args.output_dir}/nodes.dmp", "w") as nodes:
         names.write("1\t|\troot\t|\t\t|\tscientific name\t|\n")
@@ -98,6 +106,12 @@ def run(args):
             parent_id = row[1]
             name = row[2]
             rank = row[3]
+
+            if rank not in valid_ranks:
+                rank = "no rank"
+            if rank == "domain":
+                rank = "superkingdom"
+
             if parent_id is None:
                 parent_id = 1
 
@@ -126,7 +140,7 @@ def greengenes2_processing(get_or_create: Callable[..., Any | None], line: str,
         parentID = get_or_create(parentID, name, rank)
     return parentID
 
-def silva_processing(get_or_create: Callable[..., Any | None], line: str) -> Any:
+def silva_processing(get_or_create, line, tax_file) -> Any:
 
 
     accession, lineage = line[1:].strip().split(" ", 1)
@@ -145,18 +159,40 @@ def silva_processing(get_or_create: Callable[..., Any | None], line: str) -> Any
         taxmap = {0: "domain",
               len(fields)-1: "species",
               len(fields)-2: "genus"}
-    lowest_rank = taxmap[len(fields)-1]
-    name = fields[-1]
 
     parentID = None
+    temp_lineage = []
     for i, field in enumerate(fields):
-        if i not in taxmap.keys():
-            rank = "no rank"
+        if (tax_file is None) or (len(fields) == 7):
+            rank = get_rank_custom(i, taxmap)
         else:
-            rank = taxmap[i]
+            rank = get_rank_tax_file(field, fields, i, tax_file, temp_lineage, taxmap)
+
         name = field.strip()
         if not name:
             continue
         parentID = get_or_create(parentID, name, rank)
 
     return parentID, accession
+
+
+def get_rank_tax_file(field, fields, i: int, tax_file, temp_lineage, taxmap) -> str:
+    if i == len(fields) - 1:
+        rank = "species"
+    else:
+        temp_lineage.append(f"{field};")
+        rank = tax_file["rank"][tax_file["lineage"] == "".join(temp_lineage)]
+        n_ranks = len(rank)
+        if n_ranks == 1:
+            rank = rank.item()
+        if n_ranks == 0:
+            rank = get_rank_custom(i, taxmap)
+    return rank
+
+
+def get_rank_custom(i: int, taxmap: dict[int, str]) -> str:
+    if i not in taxmap.keys():
+        rank = "no rank"
+    else:
+        rank = taxmap[i]
+    return rank
