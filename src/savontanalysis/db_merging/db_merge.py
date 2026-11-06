@@ -47,7 +47,7 @@ def run(args):
 
 
 def write_merged_db(args, headers: list[Any], sequences: list[Any], taxmap: DataFrame):
-    taxmap.to_csv(f"{args.output_dir}taxmap.txt", sep="\t", index=False)
+    taxmap.to_csv(f"{args.output_dir}/taxmap.txt", sep="\t", index=False)
 
     with open(f"{args.output_dir}/merged_db.fasta", "w") as f:
         for i in range(0, len(headers)):
@@ -69,7 +69,7 @@ def get_nucleic_converted(nucleic_type_base: str | None, nucleic_type_second: st
 
 def merge_fasta(converter: Callable[..., Any] | Callable[..., Any] | Callable[..., Any], fasta_new: list[str],
                 headers: list[Any], sequences: list[Any], new_db_info):
-    valid_indices = [0, 4, 6, 7, 8, 9, 11, 12]
+    valid_indices = [0, 4, 5, 6, 7, 8, 9, 10, 11, 12]
     tax_map = []
     x = 0
     header = ""
@@ -86,6 +86,7 @@ def merge_fasta(converter: Callable[..., Any] | Callable[..., Any] | Callable[..
             tax_map_info = {}
             line = line.replace("_", " ").strip().split("|")
             filtered_header = [item for index, item in enumerate(line) if index in valid_indices]
+            filtered_header[0] = ">PR2_" + filtered_header[0][1:]
             header = ";".join(filtered_header).replace(";", " ", 1).replace(" ", "_", 1)
             accession = line[0][1:].replace(" ", "_")
             if accession not in info_lookup.index:
