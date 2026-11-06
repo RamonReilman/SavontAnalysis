@@ -15,6 +15,7 @@ def register(subparser):
     p.add_argument("--input_fasta", required=True)
     p.add_argument("--tax_file", help="tax_slv_lsu file belonging to Silva, used to get better rank assignment")
     p.add_argument("--output_dir", default="./")
+    p.add_argument("--db_path", required = True, help="Location where db will be saved")
 
 
 def run(args):
@@ -47,9 +48,7 @@ def run(args):
             "g__": "genus",
             "s__": "species"
         }
-        db = TaxonomyDB("~/.local/share/tax.db")
-    elif args.db_type == "silva":
-        db = TaxonomyDB("~/.local/share/silva_tax.db")
+    db = TaxonomyDB(args.db_path)
 
     rows = []
     ref2tax = {}
@@ -141,11 +140,25 @@ def greengenes2_processing(get_or_create: Callable[..., Any | None], line: str,
     return parentID
 
 def silva_processing(get_or_create, line, tax_file) -> Any:
-
-
     accession, lineage = line[1:].strip().split(" ", 1)
     fields = lineage.split(";")
-    if len(fields) == 7:
+    # PR2 line
+    if "PR2" in accession:
+        taxmap = {
+            0: "domain",
+            1: "supergroup",
+            2: "phylum",
+            3: "subdivision",
+            4: "class",
+            5: "order",
+            6: "family",
+            7: "genus",
+            8: "species"
+        }
+
+
+    # Silva structured line
+    elif len(fields) == 7:
         taxmap = {
             0: "domain",
             1: "phylum",
@@ -155,18 +168,20 @@ def silva_processing(get_or_create, line, tax_file) -> Any:
             5: "genus",
             6: "species",
         }
+    # If uncertain pick safest option
     else:
         taxmap = {0: "domain",
               len(fields)-1: "species",
               len(fields)-2: "genus"}
+    rank_lookup = dict(zip(tax_file["lineage"], tax_file["rank"]))
 
     parentID = None
     temp_lineage = []
     for i, field in enumerate(fields):
-        if (tax_file is None) or (len(fields) == 7):
+        if tax_file is None:
             rank = get_rank_custom(i, taxmap)
         else:
-            rank = get_rank_tax_file(field, fields, i, tax_file, temp_lineage, taxmap)
+            rank = get_rank_tax_file(field, fields, i, rank_lookup, temp_lineage, taxmap)
 
         name = field.strip()
         if not name:
@@ -176,17 +191,13 @@ def silva_processing(get_or_create, line, tax_file) -> Any:
     return parentID, accession
 
 
-def get_rank_tax_file(field, fields, i: int, tax_file, temp_lineage, taxmap) -> str:
+def get_rank_tax_file(field, fields, i: int, rank_lookup, temp_lineage, taxmap) -> str:
     if i == len(fields) - 1:
-        rank = "species"
-    else:
-        temp_lineage.append(f"{field};")
-        rank = tax_file["rank"][tax_file["lineage"] == "".join(temp_lineage)]
-        n_ranks = len(rank)
-        if n_ranks == 1:
-            rank = rank.item()
-        if n_ranks == 0:
-            rank = get_rank_custom(i, taxmap)
+        return "species"
+    temp_lineage.append(f"{field};")
+    rank = rank_lookup.get("".join(temp_lineage))
+    if rank is None:
+        rank = get_rank_custom(i, taxmap)
     return rank
 
 
