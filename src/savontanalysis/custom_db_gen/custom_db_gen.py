@@ -31,11 +31,13 @@ def run(args):
 
     if dir_check.main(args.output_dir) is False:
         return None
-    tax_file = None
+    rank_lookup = None
     if args.tax_file is not None:
         tax_file = read_tab_pandas.main(args.tax_file, header=None).dropna(axis = 1, how = "all")
         print(tax_file)
         tax_file.columns = ["lineage", "taxid", "rank", "version"]
+
+        rank_lookup = dict(zip(tax_file["lineage"], tax_file["rank"]))
 
 
     if args.db_type == "greengenes2":
@@ -68,7 +70,6 @@ def run(args):
         cache[key] = taxid
         return taxid
 
-    print(args.input_fasta)
     seq_id = 0
     with open(str(args.input_fasta), "r") as f:
         for line in f:
@@ -78,7 +79,7 @@ def run(args):
                     ref2tax[f"gg{seq_id}"] = parentID if parentID is not None else 0
                     line = f">gg{seq_id} {line[1:]}"
                 elif args.db_type == "silva":
-                    parentID, accession = silva_processing(get_or_create, line, tax_file)
+                    parentID, accession = silva_processing(get_or_create, line, rank_lookup)
                     ref2tax[accession] = parentID if parentID is not None else 0
 
                 seq_id += 1
@@ -139,7 +140,7 @@ def greengenes2_processing(get_or_create: Callable[..., Any | None], line: str,
         parentID = get_or_create(parentID, name, rank)
     return parentID
 
-def silva_processing(get_or_create, line, tax_file) -> Any:
+def silva_processing(get_or_create, line, rank_lookup) -> Any:
     accession, lineage = line[1:].strip().split(" ", 1)
     fields = lineage.split(";")
     # PR2 line
@@ -173,12 +174,11 @@ def silva_processing(get_or_create, line, tax_file) -> Any:
         taxmap = {0: "domain",
               len(fields)-1: "species",
               len(fields)-2: "genus"}
-    rank_lookup = dict(zip(tax_file["lineage"], tax_file["rank"]))
 
     parentID = None
     temp_lineage = []
     for i, field in enumerate(fields):
-        if tax_file is None:
+        if rank_lookup is None:
             rank = get_rank_custom(i, taxmap)
         else:
             rank = get_rank_tax_file(field, fields, i, rank_lookup, temp_lineage, taxmap)
