@@ -1,5 +1,6 @@
 import pandas as pd
-from savontanalysis.io import read_species_abundance, dir_check
+from savontanalysis.io import read_tab_pandas, dir_check
+from savontanalysis.result_merging import tie_breaking_system, savont_result_merging
 
 
 def register(subparsers):
@@ -31,14 +32,19 @@ def run(args):
     :return: Writes file at the arg.output
         """
 
-    species_abundance = read_species_abundance.main(args.input_dir)
-    if species_abundance is None:
+    asv = read_tab_pandas.main(f"{args.input_dir}/asv_mappings.tsv", header=0)
+    if asv is None:
         return
     if dir_check.main(args.output) is False:
         return
-    species_abundance = species_abundance.dropna(axis=1, how="all")
-    final_rank_col = list(species_abundance.columns).index("superkingdom")+1
-    taxo_ranks = species_abundance.iloc[:, : final_rank_col]
+    savont_result_merging.create_lineage(asv)
+    asv = tie_breaking_system.main(asv_mapping=asv)
+    asv = pd.Series(asv).str.split(";", expand = True)
+    asv.columns = ['Species', 'Genus', 'Family', 'Order', 'Class', 'Phylum', 'clade', 'superkingdom']
+    asv.index.name = 'ASV_id'
+    asv = asv.reset_index()
+    asv = asv.replace('nan', pd.NA).dropna(how = "all", axis = 1)
+    taxo_ranks = asv.iloc[:, 1: ]
     assignment_percentage = taxo_ranks.apply(calculate_assignment_perc)
     informative_percentage = taxo_ranks.apply(calculate_informative_perc)
     env_percentage = taxo_ranks.apply(calculate_environmental_perc)

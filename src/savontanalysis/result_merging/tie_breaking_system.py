@@ -1,7 +1,6 @@
 from collections import defaultdict
 import pandas as pd
 def main(asv_mapping):
-    print("_---------_----__--")
     asv_to_lineage = asv_mapping.groupby("asv_header", sort=False)[["lineage", "alignment_identity"]].agg(list)
     filtered = asv_to_lineage.apply(
         lambda row: filter_max_pair(row["lineage"], row["alignment_identity"]), axis = 1)
@@ -18,7 +17,6 @@ def resolve_all_lineages(asv_to_lineage):
 
     resolved_lineages = {}
     for asv, lineages in asv_to_lineage.items():
-        print()
 
         if len(lineages) == 1:
             resolved_lineages[asv] = lineages[0]

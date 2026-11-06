@@ -8,7 +8,6 @@ def register(subparsers):
     p.add_argument("--classify_directories", nargs="+", help = "List of savont classify directories", required = True)
 
 def run(args):
-    print("DEBUGGING< LIST SAVONT_ABUNDANCE_CALC LIST == INDEXED BY 0")
     asv_mappings = []
     if len(args.classify_directories) > 0:
         for classify_dir in args.classify_directories:
@@ -34,15 +33,13 @@ def run(args):
             col.append(abundance)
 
         df[sample] = pd.Series(col)
-    print(resolved_lineages)
     df = df.sort_values(by=df.columns[-1], ascending=False)
-    print(df)
     df.to_csv("./testoutput.tsv", sep="\t", index=False)
 
 def create_lineage(df):
     cols = ["species", "genus", "family", "order", "class", "phylum",
        "clade", "superkingdom"]
-    df["lineage"] = df[cols].apply(lambda row: ";".join(row.values.astype(str)), axis = 1)
+    df["lineage"] = df[cols].fillna('nan').apply(lambda row: ";".join(row.values.astype(str)), axis = 1)
 
 def clean_lineages(resolved_lineages):
     cleaned_lineages = []
