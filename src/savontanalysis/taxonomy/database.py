@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 
+
 class TaxonomyDB:
     def __init__(self, db_path):
         """
@@ -31,7 +32,6 @@ class TaxonomyDB:
                     UNIQUE(name, rank)
                 )
             """)
-
 
     def add_taxon(self, parent_taxid, name, rank):
         """
@@ -68,7 +68,8 @@ class TaxonomyDB:
         """
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("SELECT taxid FROM taxa WHERE name =? AND rank =?", (name, rank))
+            cur.execute("SELECT taxid FROM taxa "
+                        "WHERE name =? AND rank =?", (name, rank))
             row = cur.fetchone()
             if row:
                 return row[0]
@@ -83,7 +84,8 @@ class TaxonomyDB:
         """
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("SELECT parent_taxid FROM taxa WHERE name =? and rank =?", (name, rank))
+            cur.execute("SELECT parent_taxid FROM taxa "
+                        "WHERE name =? and rank =?", (name, rank))
             row = cur.fetchone()
             if row:
                 return row[0]
@@ -99,7 +101,8 @@ class TaxonomyDB:
         """
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("UPDATE taxa SET parent_taxid =? WHERE name =? and rank =?",
+            cur.execute("UPDATE taxa SET parent_taxid =? "
+                        "WHERE name =? and rank =?",
                         (parent_id, name, rank))
             return None
 
