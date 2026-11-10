@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 
 def main(path):
@@ -6,14 +7,9 @@ def main(path):
     Checks if path is a dir \n
     If dir does not exist, create it
     :param path: string of path to be checked
-    :return: True if exists, false if dir was not created
+    :raises OSError: If the directory cannot be created
     """
     path = Path(path)
-    if path.suffix:
-        return True
-    try:
-        path.mkdir(parents=True, exist_ok=True,)
-        return True
-    except PermissionError as _:
-        print("Directory could not be made (check permissions)")
-        return False
+    if path.suffix or path.is_file():
+        path = path.parent
+    path.mkdir(parents=True, exist_ok=True)
