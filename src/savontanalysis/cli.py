@@ -8,9 +8,15 @@ from savontanalysis.result_merging import savont_result_merging
 
 
 def setup_cli():
-    parser = argparse.ArgumentParser(description="Savont metagenomics analyser")
+    """
+    Sets up the CLI interface, with different submodules
+    :return: Parsed arguments
+    """
+    parser = argparse.ArgumentParser(description="Savont metagenomics "
+                                                 "analyser")
     subparsers = parser.add_subparsers(dest="type", required=True,
-                                       help="Pick what kind of analysis you want")
+                                       help="Pick what kind of "
+                                            "analysis you want")
 
     basic_overview.register(subparsers)
     profile2CAMI.register(subparsers)
@@ -22,7 +28,13 @@ def setup_cli():
 
     return parser.parse_args()
 
-def main(argv = None):
+
+def main(argv=None):
+    """
+    Dispatches the right submodule based on the users CLI choice
+    :param argv: -
+    :return: None
+    """
     args = setup_cli()
     if platform.system() == "Windows":
         print("Tool not compatible with Windows")
