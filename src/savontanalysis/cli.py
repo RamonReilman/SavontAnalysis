@@ -4,7 +4,7 @@ import logging
 
 from pandas.errors import EmptyDataError, ParserError
 
-from savontanalysis.analysis import basic_overview, assignment_overview
+from savontanalysis.analysis import basic_overview, assignment_overview, richness_overview
 from savontanalysis.taxonomy import profile2CAMI
 from savontanalysis.custom_db_gen import custom_db_gen, pr2_to_silva
 from savontanalysis.db_merging import db_merge
@@ -30,6 +30,7 @@ def setup_cli():
     pr2_to_silva.register(subparsers)
     savont_result_merging.register(subparsers)
     assignment_overview.register(subparsers)
+    richness_overview.register(subparsers)
 
     return parser.parse_args()
 
@@ -50,7 +51,8 @@ def main(argv=None):
                 "mergeDB": db_merge.run,
                 "PR2Transform": pr2_to_silva.run,
                 "savont_result_merger": savont_result_merging.run,
-                "assignment_overview": assignment_overview.run}
+                "assignment_overview": assignment_overview.run,
+                "richness_overview": richness_overview.run}
     try:
         dispatch[args.type](args)
     except (OSError, EmptyDataError, ParserError) as exc:
