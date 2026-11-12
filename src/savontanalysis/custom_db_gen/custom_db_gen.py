@@ -85,20 +85,18 @@ def run(args):
                 seq_id += 1
             rows.append(line)
 
-    print("writing gg2")
-    with open(f"{args.output_dir}/gg2_renamed.fa", "w") as f:
-        f.write("".join(rows))
+    write_gg2(args, rows)
 
-    print("writing ref2taxid")
-    with open(f"{args.output_dir}/ref2taxid.tsv", "w") as f:
-        for key, value in ref2tax.items():
-            f.write(f"{key}\t{value}\n")
+    write_ref2taxic(args, ref2tax)
+
+    writing_names_nodes(args, db)
 
 
+def writing_names_nodes(args, db):
     rows = db.get_all()
     valid_ranks = ["domain", "phylum", "class", "order", "family", "genus", "species"]
     with open(f"{args.output_dir}/names.dmp", "w") as names, \
-    open(f"{args.output_dir}/nodes.dmp", "w") as nodes:
+            open(f"{args.output_dir}/nodes.dmp", "w") as nodes:
         names.write("1\t|\troot\t|\t\t|\tscientific name\t|\n")
         nodes.write("1\t|\t1\t|\tno rank\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
         for row in rows[1:]:
@@ -116,7 +114,21 @@ def run(args):
                 parent_id = 1
 
             names.write(f"{id}\t|\t{name}\t|\t\t|\tscientific name\t|\n")
-            nodes.write(f"{id}\t|\t{parent_id}\t|\t{rank or 'no rank'}\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
+            nodes.write(
+                f"{id}\t|\t{parent_id}\t|\t{rank or 'no rank'}\t|\t\t|\t0\t|\t1\t|\t11\t|\t1\t|\t0\t|\t1\t|\t0\t|\t0\t|\t\t|\n")
+
+
+def write_ref2taxic(args, ref2tax):
+    print("writing ref2taxid")
+    with open(f"{args.output_dir}/ref2taxid.tsv", "w") as f:
+        for key, value in ref2tax.items():
+            f.write(f"{key}\t{value}\n")
+
+
+def write_gg2(args, rows):
+    print("writing gg2")
+    with open(f"{args.output_dir}/gg2_renamed.fa", "w") as f:
+        f.write("".join(rows))
 
 
 def greengenes2_processing(get_or_create: Callable[..., Any | None], line: str,
