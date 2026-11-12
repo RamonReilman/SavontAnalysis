@@ -2,29 +2,52 @@ from savontanalysis.analysis import savont_abundance_calc
 from savontanalysis.io import read_tab_pandas
 from savontanalysis.result_merging import tie_breaking_system
 import pandas as pd
+
+
 def register(subparsers):
-    p = subparsers.add_parser("savont_result_merger", help="Merge the results of 2 savont runs (same ASV-base)")
+    """
+    Registers the right CLI arguments for this submodule
+    :param subparser: Subparser given by CLI.py
+    :return: None
+    """
+    p = subparsers.add_parser("savont_result_merger",
+                              help="Merge the results of "
+                                   "2 savont runs (same ASV-base)")
     p.add_argument("--asv_directory", required=True)
-    p.add_argument("--classify_directories", nargs="+", help = "List of savont classify directories", required = True)
+    p.add_argument("--classify_directories", nargs="+",
+                   help="List of savont classify directories", required=True)
+
 
 def run(args):
+    """
+    Merges different Savont results
+    :param args: CLI arguments.
+    :return: Writes a TSV file containing the merged results
+    """
     asv_mappings = []
     if len(args.classify_directories) > 0:
         for classify_dir in args.classify_directories:
-            asv_mappings.append(read_tab_pandas.main(f"{classify_dir}/asv_mappings.tsv"))
+            asv_mappings.append(read_tab_pandas.main(
+                f"{classify_dir}/asv_mappings.tsv"))
 
     asv_mapping = pd.concat(asv_mappings)
 
-    feature_table = read_tab_pandas.main(f"{args.asv_directory}/feature-table.tsv")
+    feature_table = read_tab_pandas.main(
+        f"{args.asv_directory}/feature-table.tsv")
     asv_mapping = asv_mapping.fillna("")
     create_lineage(asv_mapping)
-    final_assignments = read_tab_pandas.main(f"{args.asv_directory}/final_assignments.tsv")
+    final_assignments = read_tab_pandas.main(
+        f"{args.asv_directory}/final_assignments.tsv")
 
     resolved_lineages = tie_breaking_system.main(asv_mapping)
     clean_lineages_list = clean_lineages(resolved_lineages)
-    lineage_abundancies = savont_abundance_calc.main(resolved_lineages, final_assignments, feature_table)
-    df = pd.Series(clean_lineages_list).str.split(";", expand = True)
-    df.columns = ["species", "genus", "family", "order", "class", "phylum", "clade", "superkingdom"]
+    lineage_abundancies = savont_abundance_calc.main(resolved_lineages,
+                                                     final_assignments,
+                                                     feature_table)
+    df = (pd.Series(clean_lineages_list).str
+          .split(";", expand=True))
+    df.columns = ["species", "genus", "family", "order",
+                  "class", "phylum", "clade", "superkingdom"]
     for sample in lineage_abundancies.keys():
         col = []
         for lineage in clean_lineages_list:
@@ -36,12 +59,27 @@ def run(args):
     df = df.sort_values(by=df.columns[-1], ascending=False)
     df.to_csv("./testoutput.tsv", sep="\t", index=False)
 
+
 def create_lineage(df):
+    """
+    Creates a new column in ASV mapping called lineage
+    Maps all taxonomic ranks into 1 value, joined by ";"
+    :param df: ASV mapping dataframe
+    :return:
+    """
     cols = ["species", "genus", "family", "order", "class", "phylum",
-       "clade", "superkingdom"]
-    df["lineage"] = df[cols].fillna('nan').apply(lambda row: ";".join(row.values.astype(str)), axis = 1)
+            "clade", "superkingdom"]
+    df["lineage"] = (df[cols].fillna('nan')
+                     .apply(lambda row: ";".join(row.values.astype(str)),
+                            axis=1))
+
 
 def clean_lineages(resolved_lineages):
+    """
+    Removes all duplicate lineages from the resolved lineages
+    :param resolved_lineages: Dict containing winning candidate for all ASVs
+    :return: List of winning lineage candidates, with removed duplicates
+    """
     cleaned_lineages = []
     for lineage in resolved_lineages.values():
         if lineage not in cleaned_lineages:
