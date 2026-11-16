@@ -2,7 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from savontanalysis.io import read_species_abundance, read_tab_pandas
+from savontanalysis.io import read_species_abundance, read_tab_pandas, dir_check
 
 
 def register(subparsers):
@@ -42,14 +42,14 @@ def run(args):
     :param args: CLI arguments.
     :return: Writes a file containing the richness overview
     """
-
+    dir_check.main(args.output)
     asv = read_tab_pandas.main(f"{args.input_dir}/asv_mappings.tsv", header=0)
     abundance = read_species_abundance.main(args.input_dir)
     if asv is None or abundance is None:
         return
     total_depth = get_total_depth(asv)
     relative_abundance_columns = calculate_reads(total_depth, abundance)
-    abundance_no_unclassified = drop_unclassified(abundance)
+    abundance_no_unclassified = drop_unclassified(abundance, "species")
     recalculate_rel_abundance(abundance_no_unclassified,
                               relative_abundance_columns)
     richness = thresholds_filter(args.thresholds, abundance_no_unclassified,
@@ -65,7 +65,7 @@ def run(args):
 
     df = pd.DataFrame(richness)
     df.columns = columns
-    df.to_csv(args.output, sep="\t")
+    df.to_csv(args.output, sep="\t", )
 
 
 def get_total_depth(asv):
@@ -77,7 +77,10 @@ def get_total_depth(asv):
     asv_headers = asv["asv_header"].unique()
     total_depth = 0
     for header in asv_headers:
-        depth = int(header.split("-")[-1])
+        if "-" in header:
+            depth = int(header.split("-")[-1])
+        else:
+            depth = int(header.split("_")[-1])
         total_depth += depth
     return total_depth
 
@@ -90,8 +93,11 @@ def calculate_reads(total_depth, abundance):
     :param abundance: Species abundance dataframe
     :return: The names of the columns containing the relative abundance
     """
-    sk_index = abundance.columns.get_loc("superkingdom")
-    cols_after_sk = abundance.columns[sk_index+1:]
+    if len(abundance.columns) > 9:
+        sk_index = abundance.columns.get_loc("superkingdom")
+        cols_after_sk = abundance.columns[sk_index+1:]
+    else:
+        cols_after_sk = [abundance.columns[0]]
 
     for col in cols_after_sk:
         abundance[f"{col}_reads"] = abundance[col] * total_depth
@@ -99,7 +105,7 @@ def calculate_reads(total_depth, abundance):
     return cols_after_sk
 
 
-def drop_unclassified(abundance):
+def drop_unclassified(abundance, str_columns = "species"):
     """
     Drops all rows that contains UNKNOWN or UNCLASSIFIED
     :param abundance: Species abundance dataframe
@@ -107,10 +113,9 @@ def drop_unclassified(abundance):
     """
     strings = ["UNKNOWN", "UNCLASSIFIED"]
     pattern = "|".join(re.escape(s) for s in strings)
-    str_columns = abundance.select_dtypes(include="object").columns
-    mask = abundance[str_columns].apply(lambda col: col.str.contains(
-        pattern, case=False, na=False)).any(axis=1)
-    return abundance[~mask]
+
+    mask = abundance[str_columns].str.contains(pattern, case=False, na=False)
+    return abundance[~mask].copy()
 
 
 def recalculate_rel_abundance(abundance, relative_abundance_columns):
@@ -145,9 +150,9 @@ def thresholds_filter(thresholds, abundance, relative_abundance_columns):
     """
     lijstje = []
     for t in thresholds:
-        temp_lijst = [f"rel >= {t}"]
+        temp_lijst = [f"rel > {t}"]
         for column in relative_abundance_columns:
-            number_of_species_above_t = (abundance[column]*100 >= t).sum()
+            number_of_species_above_t = (abundance[column]*100 > t).sum()
             temp_lijst.append(int(number_of_species_above_t))
         lijstje.append(temp_lijst)
     return lijstje
