@@ -55,7 +55,7 @@ def run(args):
     richness = thresholds_filter(args.thresholds, abundance_no_unclassified,
                                  relative_abundance_columns)
     n_rare_species_list = n_rare_species(args.max_abundance, args.min_reads,
-                                         abundance, relative_abundance_columns)
+                                         abundance_no_unclassified, relative_abundance_columns)
     shannon_exps = calc_exp_shannon(abundance_no_unclassified,
                                     relative_abundance_columns)
     inverse_simpsons = calc_inverse_simpson(abundance_no_unclassified,
