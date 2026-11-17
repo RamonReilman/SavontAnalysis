@@ -77,6 +77,7 @@ def calculate_environmental_perc(col):
     ENVIRONMENTAL_PATTERN = "|".join([
         r"uncultured",
         r"\bmetagenome\b",
+        r"\bmarine\b"
     ])
     return 100 - calculate_perc(col, ENVIRONMENTAL_PATTERN, na=False)
 
